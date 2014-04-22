@@ -25,6 +25,13 @@
 #include "config.h"
 #endif
 
+#ifdef linux
+#include <glib/gstdio.h>
+#else
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
 #include <gst/gst.h>
 #include <gio/gio.h>
 #include <string.h>
@@ -577,6 +584,50 @@ _set_rank (GstValidateScenario * scenario, GstValidateAction * action)
   return TRUE;
 }
 
+#ifdef linux
+typedef struct {
+      unsigned long size,resident,share,text,lib,data,dt;
+} statm_t;
+#endif
+
+static unsigned long
+get_resident_memory_usage(void) {
+#ifdef linux
+  FILE *proc_file;
+  statm_t result;
+  const gchar *statm_path = "/proc/self/statm";
+  proc_file = g_fopen(statm_path, "r");
+
+  if (!proc_file)
+    return 0;
+  if (7 != fscanf(proc_file,"%ld %ld %ld %ld %ld %ld %ld",
+                  &result.size,
+                  &result.resident,
+                  &result.share,
+                  &result.text,
+                  &result.lib,
+                  &result.data,
+                  &result.dt)) {
+    fclose(proc_file);
+    return 0;
+  } else {
+    fclose(proc_file);
+    return result.resident;
+  }
+
+#else
+  struct rusage* memory = g_malloc(sizeof(struct rusage));
+  errno = 0;
+  getrusage(RUSAGE_SELF, memory);
+  if(errno == EFAULT)
+    return 0;
+  else if(errno == EINVAL)
+    return 0;
+
+  return (memory->ru_idrss);
+#endif
+}
+
 static gboolean
 get_position (GstValidateScenario * scenario)
 {
@@ -611,6 +662,7 @@ get_position (GstValidateScenario * scenario)
     return TRUE;
   }
 
+  GST_INFO("memory usage is : %ld", get_resident_memory_usage());
   GST_LOG ("Current position: %" GST_TIME_FORMAT, GST_TIME_ARGS (position));
 
   /* Check if playback is within seek segment */
@@ -1189,6 +1241,7 @@ gst_validate_scenario_dispose (GObject * object)
   if (GST_VALIDATE_SCENARIO (object)->pipeline)
     gst_object_unref (GST_VALIDATE_SCENARIO (object)->pipeline);
   g_list_free_full (priv->actions, (GDestroyNotify) gst_mini_object_unref);
+
 
   G_OBJECT_CLASS (gst_validate_scenario_parent_class)->dispose (object);
 }
