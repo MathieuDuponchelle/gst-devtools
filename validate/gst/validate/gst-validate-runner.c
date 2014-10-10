@@ -154,8 +154,14 @@ _set_reporting_level_for_name (GstValidateRunner * runner,
   pattern_level->pattern = pattern_spec;
   pattern_level->level = level;
 
-  runner->priv->report_pattern_levels =
-      g_list_append (runner->priv->report_pattern_levels, pattern_level);
+  /* Allow the user to single out a pad with the "element-name__pad-name" syntax
+   */
+  if (g_strrstr (pattern, "__"))
+    runner->priv->report_pattern_levels =
+        g_list_prepend (runner->priv->report_pattern_levels, pattern_level);
+  else
+    runner->priv->report_pattern_levels =
+        g_list_append (runner->priv->report_pattern_levels, pattern_level);
 }
 
 static void
