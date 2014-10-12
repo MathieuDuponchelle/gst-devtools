@@ -1844,6 +1844,8 @@ gst_validate_pad_monitor_buffer_probe (GstPad * pad, GstBuffer * buffer,
 
   gst_validate_pad_monitor_check_first_buffer (monitor, buffer);
   gst_validate_pad_monitor_update_buffer_data (monitor, buffer);
+  if (gst_pad_get_last_flow_return (pad) == GST_FLOW_EOS)
+    monitor->is_eos = TRUE;
   gst_validate_pad_monitor_check_eos (monitor, buffer);
 
   if (PAD_PARENT_IS_DECODER (monitor) || PAD_PARENT_IS_ENCODER (monitor)) {
