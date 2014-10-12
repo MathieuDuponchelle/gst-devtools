@@ -171,50 +171,6 @@ done:
 }
 
 static gboolean
-check_sinkpads (GstElement * element, GstValidateReport * report)
-{
-  GstIterator *iter;
-  gboolean done = FALSE;
-  GValue item = { 0, };
-  gboolean result = FALSE;
-
-  iter = gst_element_iterate_sink_pads (element);
-
-  if (!iter)
-    return TRUE;
-
-  while (!done) {
-    switch (gst_iterator_next (iter, &item)) {
-      case GST_ITERATOR_OK:
-      {
-        GstPad *pad;
-
-        pad = g_value_get_object (&item);
-        if (_find_master_report_on_pad (pad, report))
-          result = TRUE;
-
-        g_value_reset (&item);
-        break;
-      }
-      case GST_ITERATOR_RESYNC:
-        gst_iterator_resync (iter);
-        break;
-      case GST_ITERATOR_ERROR:
-        done = TRUE;
-        break;
-      case GST_ITERATOR_DONE:
-        done = TRUE;
-        break;
-    }
-  }
-
-  g_value_unset (&item);
-  gst_iterator_free (iter);
-
-  return result;
-}
-
-static gboolean
 _find_master_report_for_sink_pad (GstValidatePadMonitor * pad_monitor,
     GstValidateReport * report)
 {
@@ -228,32 +184,6 @@ _find_master_report_for_sink_pad (GstValidatePadMonitor * pad_monitor,
   if (peerpad && _find_master_report_on_pad (peerpad, report))
     result = TRUE;
 
-  /* Some issues only get reported on sinks */
-  else if (peerpad) {
-    GstPad *tmppad;
-    GstObject *parent, *tmp_parent;
-
-    /* We don't monitor ghost pads */
-    while (GST_IS_GHOST_PAD (peerpad)) {
-      tmppad = peerpad;
-      peerpad = gst_ghost_pad_get_target ((GstGhostPad *) peerpad);
-      gst_object_unref (tmppad);
-    }
-
-    parent = gst_pad_get_parent (peerpad);
-
-    while (parent && !GST_IS_ELEMENT (parent)) {
-      tmp_parent = parent;
-      parent = gst_object_get_parent (parent);
-      gst_object_unref (tmp_parent);
-    }
-
-    if (parent && GST_IS_ELEMENT (parent)) {
-      result = check_sinkpads (GST_ELEMENT (parent), report);
-      gst_object_unref (parent);
-    }
-  }
-
   if (peerpad)
     gst_object_unref (peerpad);
 
@@ -266,7 +196,7 @@ _find_master_report_for_src_pad (GstValidatePadMonitor * pad_monitor,
 {
   GstIterator *iter;
   gboolean done;
-  GstPad *pad, *otherpad;
+  GstPad *pad;
   gboolean result = FALSE;
 
   iter =
@@ -278,13 +208,13 @@ _find_master_report_for_src_pad (GstValidatePadMonitor * pad_monitor,
     switch (gst_iterator_next (iter, &value)) {
       case GST_ITERATOR_OK:
         pad = g_value_get_object (&value);
-        otherpad = gst_pad_get_peer (pad);
-        if (_find_master_report_on_pad (otherpad, report)) {
+
+        if (_find_master_report_on_pad (pad, report)) {
           result = TRUE;
           done = TRUE;
         }
+
         g_value_reset (&value);
-        gst_object_unref (otherpad);
         break;
       case GST_ITERATOR_RESYNC:
         gst_iterator_resync (iter);
