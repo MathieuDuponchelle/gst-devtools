@@ -117,6 +117,13 @@ gst_validate_override_set_setcaps_handler (GstValidateOverride * override,
 }
 
 void
+gst_validate_override_set_report_handler (GstValidateOverride * override,
+    GstValidateOverrideReportHandler handler)
+{
+  override->report_handler = handler;
+}
+
+void
 gst_validate_override_event_handler (GstValidateOverride * override,
     GstValidateMonitor * monitor, GstEvent * event)
 {
@@ -162,4 +169,12 @@ gst_validate_override_setcaps_handler (GstValidateOverride * override,
 {
   if (override->setcaps_handler)
     override->setcaps_handler (override, monitor, caps);
+}
+
+void
+gst_validate_override_report_handler (GstValidateOverride * override,
+    GstValidateMonitor * monitor, GstValidateReport * report)
+{
+  if (override->report_handler)
+    override->report_handler (override, monitor, report);
 }

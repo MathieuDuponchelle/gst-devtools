@@ -42,6 +42,8 @@ typedef void (*GstValidateOverrideGetCapsHandler)(GstValidateOverride * override
     GstValidateMonitor * pad_monitor, GstCaps * caps);
 typedef void (*GstValidateOverrideSetCapsHandler)(GstValidateOverride * override,
     GstValidateMonitor * pad_monitor, GstCaps * caps);
+typedef void (*GstValidateOverrideReportHandler)(GstValidateOverride * override,
+    GstValidateMonitor * pad_monitor, GstValidateReport * report);
 
 struct _GstValidateOverride {
   GHashTable *level_override;
@@ -53,6 +55,7 @@ struct _GstValidateOverride {
   GstValidateOverrideBufferHandler buffer_probe_handler;
   GstValidateOverrideGetCapsHandler getcaps_handler;
   GstValidateOverrideSetCapsHandler setcaps_handler;
+  GstValidateOverrideReportHandler report_handler;
 };
 
 GstValidateOverride *    gst_validate_override_new (void);
@@ -66,6 +69,7 @@ void               gst_validate_override_query_handler (GstValidateOverride * ov
 void               gst_validate_override_buffer_probe_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstBuffer * buffer);
 void               gst_validate_override_getcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
 void               gst_validate_override_setcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
+void               gst_validate_override_report_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstValidateReport *report);
 
 void               gst_validate_override_set_event_handler (GstValidateOverride * override, GstValidateOverrideEventHandler handler);
 void               gst_validate_override_set_buffer_handler (GstValidateOverride * override, GstValidateOverrideBufferHandler handler);
@@ -73,6 +77,7 @@ void               gst_validate_override_set_query_handler (GstValidateOverride 
 void               gst_validate_override_set_buffer_probe_handler (GstValidateOverride * override, GstValidateOverrideBufferHandler handler);
 void               gst_validate_override_set_getcaps_handler (GstValidateOverride * override, GstValidateOverrideGetCapsHandler handler);
 void               gst_validate_override_set_setcaps_handler (GstValidateOverride * override, GstValidateOverrideSetCapsHandler handler);
+void               gst_validate_override_set_report_handler (GstValidateOverride * override, GstValidateOverrideReportHandler handler);
 
 G_END_DECLS
 
