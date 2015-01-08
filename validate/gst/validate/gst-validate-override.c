@@ -30,21 +30,36 @@
 #include "gst-validate-internal.h"
 #include "gst-validate-override.h"
 
+static void gst_validate_override_dispose (GObject * object);
+
+
+G_DEFINE_TYPE (GstValidateOverride, gst_validate_override, G_TYPE_OBJECT);
+
+static void
+gst_validate_override_class_init (GstValidateOverrideClass * klass)
+{
+  GObjectClass *g_object_class;
+
+  g_object_class = (GObjectClass *) klass;
+  g_object_class->dispose = gst_validate_override_dispose;
+}
+
+static void
+gst_validate_override_dispose (GObject * object)
+{
+  g_hash_table_unref (GST_VALIDATE_OVERRIDE (object)->level_override);
+}
+
+static void
+gst_validate_override_init (GstValidateOverride * override)
+{
+  override->level_override = g_hash_table_new (g_direct_hash, g_direct_equal);
+}
+
 GstValidateOverride *
 gst_validate_override_new (void)
 {
-  GstValidateOverride *override = g_slice_new0 (GstValidateOverride);
-
-  override->level_override = g_hash_table_new (g_direct_hash, g_direct_equal);
-
-  return override;
-}
-
-void
-gst_validate_override_free (GstValidateOverride * override)
-{
-  g_hash_table_unref (override->level_override);
-  g_slice_free (GstValidateOverride, override);
+  return g_object_new (GST_TYPE_VALIDATE_OVERRIDE, NULL);
 }
 
 void

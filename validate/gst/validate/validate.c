@@ -34,6 +34,44 @@
 
 GST_DEBUG_CATEGORY (gstvalidate_debug);
 
+static GMutex _gst_validate_registry_mutex;
+static GstRegistry *_gst_validate_registry_default = NULL;
+
+gboolean
+gst_validate_scan_plugin_path (GstRegistry * registry)
+{
+  const gchar *plugin_path = g_getenv ("GST_VALIDATE_PLUGIN_PATH");
+
+  if (plugin_path) {
+    gint i;
+
+    gchar **list = g_strsplit (plugin_path, G_SEARCHPATH_SEPARATOR_S, 0);
+
+    for (i = 0; list[i]; i++) {
+      GST_INFO ("scanning path %s", list[i]);
+      gst_registry_scan_path (registry, list[i]);
+    }
+  }
+
+  return TRUE;
+}
+
+GstRegistry *
+gst_validate_registry_get (void)
+{
+  GstRegistry *registry;
+
+  g_mutex_lock (&_gst_validate_registry_mutex);
+  if (G_UNLIKELY (!_gst_validate_registry_default)) {
+    _gst_validate_registry_default = g_object_newv (GST_TYPE_REGISTRY, 0, NULL);
+    gst_object_ref_sink (GST_OBJECT_CAST (_gst_validate_registry_default));
+  }
+  registry = _gst_validate_registry_default;
+  g_mutex_unlock (&_gst_validate_registry_mutex);
+
+  return registry;
+}
+
 /**
  * gst_validate_init:
  *
@@ -52,6 +90,11 @@ gst_validate_init (void)
 
   /* Init the scenario system */
   init_scenarios ();
+
+  gst_registry_fork_set_enabled (FALSE);
+  gst_validate_registry_get ();
+  gst_validate_scan_plugin_path (_gst_validate_registry_default);
+  gst_registry_fork_set_enabled (TRUE);
 
   /* Ensure we load overrides before any use of a monitor */
   gst_validate_override_registry_preload ();

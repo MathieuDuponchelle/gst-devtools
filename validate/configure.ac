@@ -281,6 +281,7 @@ gst/preload/Makefile
 gst/overrides/Makefile
 tests/Makefile
 tests/check/Makefile
+tests/check/dummy_override/Makefile
 pkgconfig/Makefile
 pkgconfig/gst-validate-uninstalled.pc
 pkgconfig/gst-validate.pc

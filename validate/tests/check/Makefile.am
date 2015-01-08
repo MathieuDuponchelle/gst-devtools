@@ -1,5 +1,7 @@
 include $(top_srcdir)/common/check.mak
 
+SUBDIRS = dummy_override
+
 TESTS_ENVIRONMENT = 
 
 plugindir = $(libdir)/gstreamer-@GST_API_VERSION@

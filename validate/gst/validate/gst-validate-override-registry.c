@@ -32,6 +32,8 @@
 #include "gst-validate-utils.h"
 #include "gst-validate-internal.h"
 #include "gst-validate-override-registry.h"
+#include "gst-validate-override-factory.h"
+
 
 typedef struct
 {
@@ -212,50 +214,20 @@ enum
 static gboolean
 _add_override_from_struct (GstStructure * soverride)
 {
-  GQuark issue_id;
-  GstValidateReportLevel level;
   GstValidateOverride *override;
-  const gchar *str_issue_id, *str_new_severity,
-      *factory_name = NULL, *name = NULL, *klass = NULL;
+  const gchar *factory_name = NULL, *name = NULL, *klass = NULL;
 
   gboolean registered = FALSE;
 
-  if (!gst_structure_has_name (soverride, "change-severity")) {
-    GST_ERROR ("Currently only 'change-severity' overrides are supported");
+  override =
+      gst_validate_override_factory_make (gst_structure_get_name (soverride),
+      NULL);
+  if (!override) {
+    GST_ERROR ("No factory for override named %s",
+        gst_structure_get_name (soverride));
 
     return FALSE;
   }
-
-  str_issue_id = gst_structure_get_string (soverride, "issue-id");
-  if (!str_issue_id) {
-    GST_ERROR ("No issue id provided in override: %" GST_PTR_FORMAT, soverride);
-
-    return FALSE;
-  }
-
-  issue_id = g_quark_from_string (str_issue_id);
-  if (gst_validate_issue_from_id (issue_id) == NULL) {
-    GST_ERROR ("No GstValidateIssue registered for %s", str_issue_id);
-
-    return FALSE;
-  }
-
-  str_new_severity = gst_structure_get_string (soverride, "new-severity");
-  if (str_new_severity == NULL) {
-    GST_ERROR ("No 'new-severity' field found in %" GST_PTR_FORMAT, soverride);
-
-    return FALSE;
-  }
-
-  level = gst_validate_report_level_from_name (str_new_severity);
-  if (level == GST_VALIDATE_REPORT_LEVEL_UNKNOWN) {
-    GST_ERROR ("Unknown level name %s", str_new_severity);
-
-    return FALSE;
-  }
-
-  override = gst_validate_override_new ();
-  gst_validate_override_change_severity (override, issue_id, level);
 
   name = gst_structure_get_string (soverride, "element-name");
   klass = gst_structure_get_string (soverride, "element-classification");
@@ -289,18 +261,7 @@ _add_override_from_struct (GstStructure * soverride)
     registered = TRUE;
   }
 
-  if (!registered) {
-    GstValidateIssue *issue = gst_validate_issue_from_id (issue_id);
-
-    if (!issue) {
-
-      return FALSE;
-    }
-
-    gst_validate_issue_set_default_level (issue, level);
-  }
-
-  return TRUE;
+  return registered;
 }
 
 static gboolean
@@ -328,11 +289,9 @@ _load_text_override_file (const gchar * filename)
 int
 gst_validate_override_registry_preload (void)
 {
-  gchar **modlist, *const *modname;
+  gchar **filelist, *const *filename;
   const char *sos, *loaderr;
-  GModule *module;
-  int ret, nloaded = 0;
-  gpointer ext_create_overrides;
+  int nloaded = 0;
 
   sos = g_getenv ("GST_VALIDATE_OVERRIDE");
   if (!sos) {
@@ -340,38 +299,18 @@ gst_validate_override_registry_preload (void)
     return 0;
   }
 
-  modlist = g_strsplit (sos, ",", 0);
-  for (modname = modlist; *modname; ++modname) {
-    GST_INFO ("Loading overrides from %s", *modname);
-    module = g_module_open (*modname, G_MODULE_BIND_LAZY);
-    if (module == NULL) {
-
-      if (_load_text_override_file (*modname) == WRONG_FILE) {
-        loaderr = g_module_error ();
-        GST_ERROR ("Failed to load %s %s", *modname,
-            loaderr ? loaderr : "no idea why");
-      }
-
-      continue;
-    }
-    if (g_module_symbol (module, GST_VALIDATE_OVERRIDE_INIT_SYMBOL,
-            &ext_create_overrides)) {
-      ret = ((GstValidateCreateOverride) ext_create_overrides) ();
-      if (ret > 0) {
-        GST_INFO ("Loaded %d overrides from %s", ret, *modname);
-        nloaded += ret;
-      } else if (ret < 0) {
-        GST_WARNING ("Error loading overrides from %s", *modname);
-      } else {
-        GST_INFO ("Loaded no overrides from %s", *modname);
-      }
+  filelist = g_strsplit (sos, ",", 0);
+  for (filename = filelist; *filename; ++filename) {
+    if (_load_text_override_file (*filename) == WRONG_FILE) {
+      loaderr = g_module_error ();
+      GST_ERROR ("Failed to load %s %s", *filename,
+          loaderr ? loaderr : "no idea why");
     } else {
-      GST_WARNING (GST_VALIDATE_OVERRIDE_INIT_SYMBOL " not found in %s",
-          *modname);
+      nloaded++;
     }
-    g_module_close (module);
   }
-  g_strfreev (modlist);
+
+  g_strfreev (filelist);
   GST_INFO ("%d overrides loaded", nloaded);
   return nloaded;
 }

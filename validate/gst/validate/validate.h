@@ -13,5 +13,7 @@
 #include <gst/validate/gst-validate-media-info.h>
 
 void gst_validate_init (void);
+GstRegistry * gst_validate_registry_get (void);
+gboolean gst_validate_scan_plugin_path (GstRegistry *registry);
 
 #endif /* _GST_VALIDATE_H */
