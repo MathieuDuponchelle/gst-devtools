@@ -38,7 +38,7 @@
 #include "gst-validate-bin-monitor.h"
 #include "gst-validate-pipeline-monitor.h"
 #include "gst-validate-pad-monitor.h"
-#include "gst-validate-override-registry.h"
+#include "gst-validate-override-parser.h"
 
 /**
  * gst_validate_monitor_factory_create:
@@ -75,6 +75,6 @@ gst_validate_monitor_factory_create (GstObject * target,
         (GST_ELEMENT_CAST (target), runner, parent));
   }
 
-  gst_validate_override_registry_attach_overrides (monitor);
+  gst_validate_override_parser_attach_overrides (monitor);
   return monitor;
 }

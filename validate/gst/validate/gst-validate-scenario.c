@@ -44,7 +44,7 @@
 #include "gst-validate-report.h"
 #include "gst-validate-utils.h"
 #include <gst/validate/gst-validate-override.h>
-#include <gst/validate/gst-validate-override-registry.h>
+#include <gst/validate/gst-validate-override-parser.h>
 
 #define GST_VALIDATE_SCENARIO_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GST_TYPE_VALIDATE_SCENARIO, GstValidateScenarioPrivate))
@@ -1781,8 +1781,8 @@ gst_validate_scenario_factory_create (GstValidateRunner *
       GST_OBJECT_NAME (pipeline));
 
   scenario->priv->overrides =
-      gst_validate_override_registry_get_override_for_names
-      (gst_validate_override_registry_get (), "scenarios", NULL);
+      gst_validate_override_parser_get_override_for_names
+      (gst_validate_override_parser_get (), "scenarios", NULL);
 
   return scenario;
 }

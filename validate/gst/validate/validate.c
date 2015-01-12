@@ -97,5 +97,5 @@ gst_validate_init (void)
   gst_registry_fork_set_enabled (TRUE);
 
   /* Ensure we load overrides before any use of a monitor */
-  gst_validate_override_registry_preload ();
+  gst_validate_override_parser_preload ();
 }

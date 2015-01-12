@@ -3,7 +3,7 @@
  * Copyright (C) 2013 Collabora Ltd.
  *  Author: Thiago Sousa Santos <thiago.sousa.santos@collabora.com>
  *
- * gst-validate-override-registry.c - Validate Override Registry
+ * gst-validate-override-parser.c - Validate Override Parser
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -31,7 +31,7 @@
 
 #include "gst-validate-utils.h"
 #include "gst-validate-internal.h"
-#include "gst-validate-override-registry.h"
+#include "gst-validate-override-parser.h"
 #include "gst-validate-override-factory.h"
 
 
@@ -39,29 +39,30 @@ typedef struct
 {
   gchar *name;
   GstValidateOverride *override;
-} GstValidateOverrideRegistryNameEntry;
+} GstValidateOverrideParserNameEntry;
 
 typedef struct
 {
   GType gtype;
   GstValidateOverride *override;
-} GstValidateOverrideRegistryGTypeEntry;
+} GstValidateOverrideParserGTypeEntry;
 
-static GMutex _gst_validate_override_registry_mutex;
-static GstValidateOverrideRegistry *_registry_default;
+static GMutex _gst_validate_override_parser_mutex;
+static GstValidateOverrideParser *_parser_default;
 
-#define GST_VALIDATE_OVERRIDE_REGISTRY_LOCK(r) g_mutex_lock (&r->mutex)
-#define GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK(r) g_mutex_unlock (&r->mutex)
+#define GST_VALIDATE_OVERRIDE_PARSER_LOCK(r) g_mutex_lock (&r->mutex)
+#define GST_VALIDATE_OVERRIDE_PARSER_UNLOCK(r) g_mutex_unlock (&r->mutex)
 
 #define GST_VALIDATE_OVERRIDE_INIT_SYMBOL "gst_validate_create_overrides"
 typedef int (*GstValidateCreateOverride) (void);
 
-static GstValidateOverrideRegistry *
-gst_validate_override_registry_new (void)
+static GstValidateOverrideParser *
+gst_validate_override_parser_new (void)
 {
-  GstValidateOverrideRegistry *reg = g_slice_new0 (GstValidateOverrideRegistry);
+  GstValidateOverrideParser *reg = g_slice_new0 (GstValidateOverrideParser);
 
   g_mutex_init (&reg->mutex);
+  g_queue_init (&reg->global_overrides);
   g_queue_init (&reg->name_overrides);
   g_queue_init (&reg->gtype_overrides);
   g_queue_init (&reg->klass_overrides);
@@ -69,73 +70,82 @@ gst_validate_override_registry_new (void)
   return reg;
 }
 
-GstValidateOverrideRegistry *
-gst_validate_override_registry_get (void)
+GstValidateOverrideParser *
+gst_validate_override_parser_get (void)
 {
-  g_mutex_lock (&_gst_validate_override_registry_mutex);
-  if (G_UNLIKELY (!_registry_default)) {
-    _registry_default = gst_validate_override_registry_new ();
+  g_mutex_lock (&_gst_validate_override_parser_mutex);
+  if (G_UNLIKELY (!_parser_default)) {
+    _parser_default = gst_validate_override_parser_new ();
   }
-  g_mutex_unlock (&_gst_validate_override_registry_mutex);
+  g_mutex_unlock (&_gst_validate_override_parser_mutex);
 
-  return _registry_default;
+  return _parser_default;
 }
 
 void
-gst_validate_override_register_by_name (const gchar * name,
+gst_validate_override_add_by_name (const gchar * name,
     GstValidateOverride * override)
 {
-  GstValidateOverrideRegistry *registry = gst_validate_override_registry_get ();
-  GstValidateOverrideRegistryNameEntry *entry =
-      g_slice_new (GstValidateOverrideRegistryNameEntry);
+  GstValidateOverrideParser *parser = gst_validate_override_parser_get ();
+  GstValidateOverrideParserNameEntry *entry =
+      g_slice_new (GstValidateOverrideParserNameEntry);
 
-  GST_VALIDATE_OVERRIDE_REGISTRY_LOCK (registry);
+  GST_VALIDATE_OVERRIDE_PARSER_LOCK (parser);
   entry->name = g_strdup (name);
   entry->override = override;
-  g_queue_push_tail (&registry->name_overrides, entry);
-  GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK (registry);
+  g_queue_push_tail (&parser->name_overrides, entry);
+  GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (parser);
 }
 
 void
-gst_validate_override_register_by_type (GType gtype,
-    GstValidateOverride * override)
+gst_validate_override_add_by_type (GType gtype, GstValidateOverride * override)
 {
-  GstValidateOverrideRegistry *registry = gst_validate_override_registry_get ();
-  GstValidateOverrideRegistryGTypeEntry *entry =
-      g_slice_new (GstValidateOverrideRegistryGTypeEntry);
+  GstValidateOverrideParser *parser = gst_validate_override_parser_get ();
+  GstValidateOverrideParserGTypeEntry *entry =
+      g_slice_new (GstValidateOverrideParserGTypeEntry);
 
-  GST_VALIDATE_OVERRIDE_REGISTRY_LOCK (registry);
+  GST_VALIDATE_OVERRIDE_PARSER_LOCK (parser);
   entry->gtype = gtype;
   entry->override = override;
-  g_queue_push_tail (&registry->gtype_overrides, entry);
-  GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK (registry);
+  g_queue_push_tail (&parser->gtype_overrides, entry);
+  GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (parser);
 }
 
 void
-gst_validate_override_register_by_klass (const gchar * klass,
+gst_validate_override_add_by_klass (const gchar * klass,
     GstValidateOverride * override)
 {
-  GstValidateOverrideRegistry *registry = gst_validate_override_registry_get ();
-  GstValidateOverrideRegistryNameEntry *entry =
-      g_slice_new (GstValidateOverrideRegistryNameEntry);
+  GstValidateOverrideParser *parser = gst_validate_override_parser_get ();
+  GstValidateOverrideParserNameEntry *entry =
+      g_slice_new (GstValidateOverrideParserNameEntry);
 
-  GST_VALIDATE_OVERRIDE_REGISTRY_LOCK (registry);
+  GST_VALIDATE_OVERRIDE_PARSER_LOCK (parser);
   entry->name = g_strdup (klass);
   entry->override = override;
-  g_queue_push_tail (&registry->klass_overrides, entry);
-  GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK (registry);
+  g_queue_push_tail (&parser->klass_overrides, entry);
+  GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (parser);
 }
 
 static void
-    gst_validate_override_registry_attach_name_overrides_unlocked
-    (GstValidateOverrideRegistry * registry, GstValidateMonitor * monitor)
+gst_validate_override_add_global (GstValidateOverride * override)
 {
-  GstValidateOverrideRegistryNameEntry *entry;
+  GstValidateOverrideParser *parser = gst_validate_override_parser_get ();
+
+  GST_VALIDATE_OVERRIDE_PARSER_LOCK (parser);
+  g_queue_push_tail (&parser->global_overrides, override);
+  GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (parser);
+}
+
+static void
+    gst_validate_override_parser_attach_name_overrides_unlocked
+    (GstValidateOverrideParser * parser, GstValidateMonitor * monitor)
+{
+  GstValidateOverrideParserNameEntry *entry;
   GList *iter;
   const gchar *name;
 
   name = gst_validate_monitor_get_element_name (monitor);
-  for (iter = registry->name_overrides.head; iter; iter = g_list_next (iter)) {
+  for (iter = parser->name_overrides.head; iter; iter = g_list_next (iter)) {
     entry = iter->data;
     if (g_strcmp0 (name, entry->name) == 0) {
       gst_validate_monitor_attach_override (monitor, entry->override);
@@ -144,10 +154,10 @@ static void
 }
 
 static void
-    gst_validate_override_registry_attach_gtype_overrides_unlocked
-    (GstValidateOverrideRegistry * registry, GstValidateMonitor * monitor)
+    gst_validate_override_parser_attach_gtype_overrides_unlocked
+    (GstValidateOverrideParser * parser, GstValidateMonitor * monitor)
 {
-  GstValidateOverrideRegistryGTypeEntry *entry;
+  GstValidateOverrideParserGTypeEntry *entry;
   GstElement *element;
   GList *iter;
 
@@ -155,7 +165,7 @@ static void
   if (!element)
     return;
 
-  for (iter = registry->gtype_overrides.head; iter; iter = g_list_next (iter)) {
+  for (iter = parser->gtype_overrides.head; iter; iter = g_list_next (iter)) {
     entry = iter->data;
     if (G_TYPE_CHECK_INSTANCE_TYPE (element, entry->gtype)) {
       gst_validate_monitor_attach_override (monitor, entry->override);
@@ -164,10 +174,25 @@ static void
 }
 
 static void
-    gst_validate_override_registry_attach_klass_overrides_unlocked
-    (GstValidateOverrideRegistry * registry, GstValidateMonitor * monitor)
+    gst_validate_override_parser_attach_global_overrides_unlocked
+    (GstValidateOverrideParser * parser, GstValidateMonitor * monitor)
 {
-  GstValidateOverrideRegistryNameEntry *entry;
+  GList *iter;
+
+  for (iter = parser->global_overrides.head; iter; iter = g_list_next (iter)) {
+    GstValidateOverride *override;
+
+    override = iter->data;
+
+    gst_validate_monitor_attach_override (monitor, override);
+  }
+}
+
+static void
+    gst_validate_override_parser_attach_klass_overrides_unlocked
+    (GstValidateOverrideParser * parser, GstValidateMonitor * monitor)
+{
+  GstValidateOverrideParserNameEntry *entry;
   GList *iter;
   GstElement *element;
   GstElementClass *klass;
@@ -181,7 +206,7 @@ static void
   klassname =
       gst_element_class_get_metadata (klass, GST_ELEMENT_METADATA_KLASS);
 
-  for (iter = registry->name_overrides.head; iter; iter = g_list_next (iter)) {
+  for (iter = parser->name_overrides.head; iter; iter = g_list_next (iter)) {
 
     entry = iter->data;
 
@@ -193,15 +218,16 @@ static void
 }
 
 void
-gst_validate_override_registry_attach_overrides (GstValidateMonitor * monitor)
+gst_validate_override_parser_attach_overrides (GstValidateMonitor * monitor)
 {
-  GstValidateOverrideRegistry *reg = gst_validate_override_registry_get ();
+  GstValidateOverrideParser *reg = gst_validate_override_parser_get ();
 
-  GST_VALIDATE_OVERRIDE_REGISTRY_LOCK (reg);
-  gst_validate_override_registry_attach_name_overrides_unlocked (reg, monitor);
-  gst_validate_override_registry_attach_gtype_overrides_unlocked (reg, monitor);
-  gst_validate_override_registry_attach_klass_overrides_unlocked (reg, monitor);
-  GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK (reg);
+  GST_VALIDATE_OVERRIDE_PARSER_LOCK (reg);
+  gst_validate_override_parser_attach_global_overrides_unlocked (reg, monitor);
+  gst_validate_override_parser_attach_name_overrides_unlocked (reg, monitor);
+  gst_validate_override_parser_attach_gtype_overrides_unlocked (reg, monitor);
+  gst_validate_override_parser_attach_klass_overrides_unlocked (reg, monitor);
+  GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (reg);
 }
 
 enum
@@ -217,7 +243,7 @@ _add_override_from_struct (GstStructure * soverride)
   GstValidateOverride *override;
   const gchar *factory_name = NULL, *name = NULL, *klass = NULL;
 
-  gboolean registered = FALSE;
+  gboolean added = FALSE;
 
   override =
       gst_validate_override_factory_make (gst_structure_get_name (soverride),
@@ -245,23 +271,30 @@ _add_override_from_struct (GstStructure * soverride)
         return FALSE;
     } else {
       type = G_OBJECT_TYPE (element);
-      gst_validate_override_register_by_type (type, override);
+      gst_validate_override_add_by_type (type, override);
     }
 
-    registered = TRUE;
+    added = TRUE;
   }
 
   if (name) {
-    gst_validate_override_register_by_name (name, override);
-    registered = TRUE;
+    gst_validate_override_add_by_name (name, override);
+    added = TRUE;
   }
 
   if (klass) {
-    gst_validate_override_register_by_klass (klass, override);
-    registered = TRUE;
+    gst_validate_override_add_by_klass (klass, override);
+    added = TRUE;
   }
 
-  return registered;
+  /* Applies everywhere */
+  if (!klass && !name && !factory_name) {
+    gst_validate_override_add_global (override);
+    added = TRUE;
+  }
+
+  override->parameters = soverride;
+  return added;
 }
 
 static gboolean
@@ -287,7 +320,7 @@ _load_text_override_file (const gchar * filename)
 }
 
 int
-gst_validate_override_registry_preload (void)
+gst_validate_override_parser_preload (void)
 {
   gchar **filelist, *const *filename;
   const char *sos, *loaderr;
@@ -315,19 +348,19 @@ gst_validate_override_registry_preload (void)
   return nloaded;
 }
 
-GList *gst_validate_override_registry_get_override_for_names
-    (GstValidateOverrideRegistry * reg, const gchar * name, ...)
+GList *gst_validate_override_parser_get_override_for_names
+    (GstValidateOverrideParser * reg, const gchar * name, ...)
 {
   GList *iter;
   GList *ret = NULL;
 
   if (name) {
     va_list varargs;
-    GstValidateOverrideRegistryNameEntry *entry;
+    GstValidateOverrideParserNameEntry *entry;
 
     va_start (varargs, name);
 
-    GST_VALIDATE_OVERRIDE_REGISTRY_LOCK (reg);
+    GST_VALIDATE_OVERRIDE_PARSER_LOCK (reg);
     while (name) {
       for (iter = reg->name_overrides.head; iter; iter = g_list_next (iter)) {
         entry = iter->data;
@@ -337,7 +370,7 @@ GList *gst_validate_override_registry_get_override_for_names
       }
       name = va_arg (varargs, gchar *);
     }
-    GST_VALIDATE_OVERRIDE_REGISTRY_UNLOCK (reg);
+    GST_VALIDATE_OVERRIDE_PARSER_UNLOCK (reg);
 
     va_end (varargs);
   }

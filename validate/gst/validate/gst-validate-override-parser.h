@@ -1,7 +1,7 @@
 /* GStreamer
  * Copyright (C) 2013 Thiago Santos <thiago.sousa.santos@collabora.com>
  *
- * gst-validate-override-registry.h - Validate Override registry
+ * gst-validate-override-parser.h - Validate Override parser
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -34,23 +34,24 @@ G_BEGIN_DECLS
 typedef struct {
   GMutex mutex;
 
+  GQueue global_overrides;
   GQueue name_overrides;
   GQueue gtype_overrides;
   GQueue klass_overrides;
-} GstValidateOverrideRegistry;
+} GstValidateOverrideParser;
 
-GstValidateOverrideRegistry * gst_validate_override_registry_get (void);
+GstValidateOverrideParser * gst_validate_override_parser_get (void);
 
 GList *
-gst_validate_override_registry_get_override_for_names (GstValidateOverrideRegistry *reg,
+gst_validate_override_parser_get_override_for_names (GstValidateOverrideParser *reg,
         const gchar *name, ...);
-void gst_validate_override_register_by_name (const gchar * name, GstValidateOverride * override);
-void gst_validate_override_register_by_type (GType gtype, GstValidateOverride * override);
-void gst_validate_override_register_by_klass (const gchar * klass, GstValidateOverride * override);
+void gst_validate_override_add_by_name (const gchar * name, GstValidateOverride * override);
+void gst_validate_override_add_by_type (GType gtype, GstValidateOverride * override);
+void gst_validate_override_add_by_klass (const gchar * klass, GstValidateOverride * override);
 
-void gst_validate_override_registry_attach_overrides (GstValidateMonitor * monitor);
+void gst_validate_override_parser_attach_overrides (GstValidateMonitor * monitor);
 
-int gst_validate_override_registry_preload (void);
+int gst_validate_override_parser_preload (void);
 
 G_END_DECLS
 

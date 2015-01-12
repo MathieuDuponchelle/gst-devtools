@@ -76,6 +76,8 @@ struct _GstValidateOverride {
   GstValidateOverrideGetCapsHandler getcaps_handler;
   GstValidateOverrideSetCapsHandler setcaps_handler;
   GstValidateOverrideReportHandler report_handler;
+
+  GstStructure *parameters;
 };
 
 GType		gst_validate_override_get_type		(void);
