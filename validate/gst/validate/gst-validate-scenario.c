@@ -123,9 +123,11 @@ gst_validate_scenario_intercept_report (GstValidateReporter * reporter,
 
   for (tmp = GST_VALIDATE_SCENARIO (reporter)->priv->overrides; tmp;
       tmp = tmp->next) {
-    report->level =
-        gst_validate_override_get_severity (tmp->data,
-        gst_validate_issue_get_id (report->issue), report->level);
+    GstValidateOverride *override;
+
+    override = GST_VALIDATE_OVERRIDE (tmp->data);
+    if (override->report_handler)
+      override->report_handler (override, reporter, report);
   }
 
   return GST_VALIDATE_REPORTER_REPORT;

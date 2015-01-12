@@ -20,11 +20,11 @@
 #include <gst/check/gstcheck.h>
 #include <glib/gstdio.h>
 #include <gst/validate/validate.h>
-#include <gst/validate/gst-validate-override-registry.h>
+#include <gst/validate/gst-validate-override-parser.h>
 
 static const gchar *some_overrides =
     "change-severity, issue-id=buffer::not-expected-one, new-severity=critical\n"
-    "change-severity, issue-id=buffer::not-expected-one, new-severity=warning, element-factory-name=queue";
+    "change-severity, issue-id=buffer::not-expected-one, new-severity=issue, element-factory-name=queue";
 
 static const gchar *some_other_overrides =
     "set-timestamp, element-factory-name=fakesink";
@@ -77,12 +77,11 @@ GST_START_TEST (check_text_overrides)
       "/home/meh/devel/pitivi-git/gst-devtools/validate/gst/overrides/.libs",
       TRUE);
   g_setenv ("GST_VALIDATE_OVERRIDE", override_filename, TRUE);
-  gst_validate_scan_plugin_path (gst_validate_registry_get ());
-  assert_equals_int (issue->default_level, GST_VALIDATE_REPORT_LEVEL_CRITICAL);
+  gst_validate_init ();
 
   /* Check that with a queue, the level of a
    * buffer::not-expected-one is WARNING */
-  _check_message_level ("queue", GST_VALIDATE_REPORT_LEVEL_WARNING,
+  _check_message_level ("queue", GST_VALIDATE_REPORT_LEVEL_ISSUE,
       "buffer::not-expected-one");
 
   /* Check that with an identity, the level of a
@@ -159,8 +158,7 @@ gst_validate_suite (void)
 
   gst_validate_init ();
 
-  if (FALSE)
-    tcase_add_test (tc_chain, check_text_overrides);
+  tcase_add_test (tc_chain, check_text_overrides);
   tcase_add_test (tc_chain, test_override);
 
   return s;

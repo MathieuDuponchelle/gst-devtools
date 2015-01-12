@@ -24,24 +24,22 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <gst/validate/gst-validate-override.h>
-#include <gst/validate/gst-validate-override-registry.h>
-#include <gst/validate/gst-validate-report.h>
 
-/* public symbol */
-int gst_validate_create_overrides (void);
+#include <gst/gst.h>
+#include <gst/validate/validate.h>
+#include <gst/validate/gst-validate-override-factory.h>
 
-int
-gst_validate_create_overrides (void)
+#include "gst-validate-override-severity-changer.h"
+
+static gboolean
+plugin_init (GstPlugin * plugin)
 {
-  GstValidateOverride *o;
-
-  /* Some random test override. Will moan on:
-     gst-launch videotestsrc num-buffers=10 ! video/x-raw-yuv !  fakesink */
-  o = gst_validate_override_new ();
-  gst_validate_override_change_severity (o,
-      g_quark_from_string ("caps::is-missing-field"),
-      GST_VALIDATE_REPORT_LEVEL_CRITICAL);
-  gst_validate_override_register_by_name ("capsfilter0", o);
-  return 1;
+  if (!gst_validate_override_factory_register (plugin, "change-severity",
+          GST_RANK_NONE, gst_validate_override_severity_changer_get_type ()))
+    return FALSE;
+  return TRUE;
 }
+
+GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, coreoverrides,
+    "gst-validate core overrides", plugin_init, VERSION, GST_LICENSE,
+    GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN);

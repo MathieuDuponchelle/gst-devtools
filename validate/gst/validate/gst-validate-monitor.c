@@ -64,10 +64,11 @@ gst_validate_monitor_intercept_report (GstValidateReporter * reporter,
   G_IMPLEMENT_INTERFACE (GST_TYPE_VALIDATE_REPORTER, _reporter_iface_init)
 
 static GstValidateReportingDetails
-_get_reporting_level (GstValidateReporter *monitor)
+_get_reporting_level (GstValidateReporter * monitor)
 {
   return GST_VALIDATE_MONITOR (monitor)->level;
 }
+
 static void
 _reporter_iface_init (GstValidateReporterInterface * iface)
 {
@@ -205,7 +206,7 @@ gst_validate_monitor_do_setup (GstValidateMonitor * monitor)
 }
 
 static GstValidateReportingDetails
-_get_report_level_for_pad (GstValidateRunner *runner, GstObject *pad)
+_get_report_level_for_pad (GstValidateRunner * runner, GstObject * pad)
 {
   GstObject *parent;
   gchar *name;
@@ -222,14 +223,14 @@ _get_report_level_for_pad (GstValidateRunner *runner, GstObject *pad)
 }
 
 static void
-_determine_reporting_level (GstValidateMonitor *monitor)
+_determine_reporting_level (GstValidateMonitor * monitor)
 {
   GstValidateRunner *runner;
   GstObject *object, *parent;
   gchar *object_name;
   GstValidateReportingDetails level = GST_VALIDATE_SHOW_UNKNOWN;
 
-  object = gst_object_ref(monitor->target);
+  object = gst_object_ref (monitor->target);
   runner = gst_validate_reporter_get_runner (GST_VALIDATE_REPORTER (monitor));
 
   do {
@@ -241,7 +242,8 @@ _determine_reporting_level (GstValidateMonitor *monitor)
     }
 
     object_name = gst_object_get_name (object);
-    level = gst_validate_runner_get_reporting_level_for_name (runner, object_name);
+    level =
+        gst_validate_runner_get_reporting_level_for_name (runner, object_name);
     parent = gst_object_get_parent (object);
     gst_object_unref (object);
     object = parent;
@@ -297,9 +299,11 @@ gst_validate_monitor_intercept_report (GstValidateReporter * reporter,
 
   GST_VALIDATE_MONITOR_OVERRIDES_LOCK (monitor);
   for (iter = monitor->overrides.head; iter; iter = g_list_next (iter)) {
-    report->level =
-        gst_validate_override_get_severity (iter->data,
-        gst_validate_issue_get_id (report->issue), report->level);
+    GstValidateOverride *override;
+
+    override = GST_VALIDATE_OVERRIDE (iter->data);
+    if (override->report_handler)
+      override->report_handler (override, reporter, report);
   }
   GST_VALIDATE_MONITOR_OVERRIDES_UNLOCK (monitor);
 

@@ -63,33 +63,6 @@ gst_validate_override_new (void)
 }
 
 void
-gst_validate_override_change_severity (GstValidateOverride * override,
-    GstValidateIssueId issue_id, GstValidateReportLevel new_level)
-{
-  g_hash_table_insert (override->level_override, (gpointer) issue_id,
-      (gpointer) new_level);
-}
-
-/*
- * Also receives @default_level to preserve a custom level that might have
- * been set by a previous GstValidateOverride and should not go back to the
- * GstValidateIssue default
- */
-GstValidateReportLevel
-gst_validate_override_get_severity (GstValidateOverride * override,
-    GstValidateIssueId issue_id, GstValidateReportLevel default_level)
-{
-  GstValidateReportLevel *level = NULL;
-
-  if (g_hash_table_lookup_extended (override->level_override,
-          (gpointer) issue_id, NULL, (gpointer) & level)) {
-
-    return GPOINTER_TO_INT (level);
-  }
-  return default_level;
-}
-
-void
 gst_validate_override_set_event_handler (GstValidateOverride * override,
     GstValidateOverrideEventHandler handler)
 {
@@ -188,8 +161,8 @@ gst_validate_override_setcaps_handler (GstValidateOverride * override,
 
 void
 gst_validate_override_report_handler (GstValidateOverride * override,
-    GstValidateMonitor * monitor, GstValidateReport * report)
+    GstValidateReporter * reporter, GstValidateReport * report)
 {
   if (override->report_handler)
-    override->report_handler (override, monitor, report);
+    override->report_handler (override, reporter, report);
 }

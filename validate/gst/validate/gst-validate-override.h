@@ -58,7 +58,7 @@ typedef void (*GstValidateOverrideGetCapsHandler)(GstValidateOverride * override
 typedef void (*GstValidateOverrideSetCapsHandler)(GstValidateOverride * override,
     GstValidateMonitor * pad_monitor, GstCaps * caps);
 typedef void (*GstValidateOverrideReportHandler)(GstValidateOverride * override,
-    GstValidateMonitor * pad_monitor, GstValidateReport * report);
+    GstValidateReporter * reporter, GstValidateReport * report);
 
 struct _GstValidateOverrideClass {
   GObjectClass parent;
@@ -83,8 +83,6 @@ struct _GstValidateOverride {
 GType		gst_validate_override_get_type		(void);
 
 GstValidateOverride * gst_validate_override_new (void);
-void               gst_validate_override_change_severity (GstValidateOverride * override, GstValidateIssueId issue_id, GstValidateReportLevel new_level);
-GstValidateReportLevel   gst_validate_override_get_severity (GstValidateOverride * override, GstValidateIssueId issue_id, GstValidateReportLevel default_level);
 
 void               gst_validate_override_event_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstEvent * event);
 void               gst_validate_override_buffer_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstBuffer * buffer);
@@ -92,7 +90,7 @@ void               gst_validate_override_query_handler (GstValidateOverride * ov
 void               gst_validate_override_buffer_probe_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstBuffer * buffer);
 void               gst_validate_override_getcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
 void               gst_validate_override_setcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
-void               gst_validate_override_report_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstValidateReport *report);
+void               gst_validate_override_report_handler (GstValidateOverride * override, GstValidateReporter * reporter, GstValidateReport *report);
 
 void               gst_validate_override_set_event_handler (GstValidateOverride * override, GstValidateOverrideEventHandler handler);
 void               gst_validate_override_set_buffer_handler (GstValidateOverride * override, GstValidateOverrideBufferHandler handler);
