@@ -1978,7 +1978,7 @@ gst_validate_action_set_done (GstValidateAction * action)
  * @type_name: The name of the new action type to add
  * @implementer_namespace: The namespace of the implementer of the action type
  * @function: (scope notified): The function to be called to execute the action
- * @parameters: The #GstValidateActionParameter usable as parameter of the type
+ * @parameters: (allow-none) (array zero-terminated=1) (element-type GstValidate.ActionParameter):The #GstValidateActionParameter usable as parameter of the type
  * @description: A description of the new type
  * @is_config: Whether the action is a config action or not. A config action will
  * be executed even before the pipeline starts processing

@@ -166,3 +166,11 @@ gst_validate_override_report_handler (GstValidateOverride * override,
   if (override->report_handler)
     override->report_handler (override, reporter, report);
 }
+
+void
+gst_validate_override_element_added_handler (GstValidateOverride * override,
+    GstValidateMonitor * monitor, GstElement * element)
+{
+  if (override->element_added_handler)
+    override->element_added_handler (override, monitor, element);
+}

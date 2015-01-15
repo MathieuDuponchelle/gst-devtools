@@ -259,8 +259,6 @@ _determine_reporting_level (GstValidateMonitor * monitor)
 gboolean
 gst_validate_monitor_setup (GstValidateMonitor * monitor)
 {
-  GST_DEBUG_OBJECT (monitor, "Starting monitor setup");
-
   /* For now we just need to do this at setup time */
   _determine_reporting_level (monitor);
   return GST_VALIDATE_MONITOR_GET_CLASS (monitor)->setup (monitor);

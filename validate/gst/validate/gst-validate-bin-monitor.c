@@ -82,7 +82,7 @@ gst_validate_bin_set_media_descriptor (GstValidateMonitor * monitor,
 
 static void
 gst_validate_bin_monitor_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec)
+    G_GNUC_UNUSED const GValue * value, GParamSpec * pspec)
 {
   switch (prop_id) {
     case PROP_HANDLES_STATE:
@@ -159,7 +159,8 @@ gst_validate_bin_monitor_class_init (GstValidateBinMonitorClass * klass)
 }
 
 static void
-gst_validate_bin_monitor_init (GstValidateBinMonitor * bin_monitor)
+gst_validate_bin_monitor_init (G_GNUC_UNUSED GstValidateBinMonitor *
+    bin_monitor)
 {
 }
 
@@ -238,6 +239,8 @@ gst_validate_bin_monitor_wrap_element (GstValidateBinMonitor * monitor,
     GstElement * element)
 {
   GstValidateElementMonitor *element_monitor;
+  GList *iter;
+
   GST_DEBUG_OBJECT (monitor, "Wrapping element %s", GST_ELEMENT_NAME (element));
 
   element_monitor =
@@ -250,6 +253,16 @@ gst_validate_bin_monitor_wrap_element (GstValidateBinMonitor * monitor,
   monitor->element_monitors = g_list_prepend (monitor->element_monitors,
       element_monitor);
   GST_VALIDATE_MONITOR_UNLOCK (monitor);
+
+  GST_VALIDATE_MONITOR_OVERRIDES_LOCK (monitor);
+  for (iter = GST_VALIDATE_MONITOR_OVERRIDES (monitor).head; iter;
+      iter = g_list_next (iter)) {
+    GstValidateOverride *override = iter->data;
+
+    gst_validate_override_element_added_handler (override,
+        GST_VALIDATE_MONITOR_CAST (element_monitor), element);
+  }
+  GST_VALIDATE_MONITOR_OVERRIDES_UNLOCK (monitor);
 }
 
 static void

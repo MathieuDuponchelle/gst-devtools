@@ -59,6 +59,8 @@ typedef void (*GstValidateOverrideSetCapsHandler)(GstValidateOverride * override
     GstValidateMonitor * pad_monitor, GstCaps * caps);
 typedef void (*GstValidateOverrideReportHandler)(GstValidateOverride * override,
     GstValidateReporter * reporter, GstValidateReport * report);
+typedef void (*GstValidateOverrideElementAddedHandler)(GstValidateOverride * override,
+    GstValidateMonitor * monitor, GstElement *element);
 
 struct _GstValidateOverrideClass {
   GObjectClass parent;
@@ -76,6 +78,7 @@ struct _GstValidateOverride {
   GstValidateOverrideGetCapsHandler getcaps_handler;
   GstValidateOverrideSetCapsHandler setcaps_handler;
   GstValidateOverrideReportHandler report_handler;
+  GstValidateOverrideElementAddedHandler element_added_handler;
 
   GstStructure *parameters;
 };
@@ -91,6 +94,7 @@ void               gst_validate_override_buffer_probe_handler (GstValidateOverri
 void               gst_validate_override_getcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
 void               gst_validate_override_setcaps_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstCaps * caps);
 void               gst_validate_override_report_handler (GstValidateOverride * override, GstValidateReporter * reporter, GstValidateReport *report);
+void               gst_validate_override_element_added_handler (GstValidateOverride * override, GstValidateMonitor * monitor, GstElement *element);
 
 void               gst_validate_override_set_event_handler (GstValidateOverride * override, GstValidateOverrideEventHandler handler);
 void               gst_validate_override_set_buffer_handler (GstValidateOverride * override, GstValidateOverrideBufferHandler handler);

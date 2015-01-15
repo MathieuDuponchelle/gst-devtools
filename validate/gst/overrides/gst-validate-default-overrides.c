@@ -30,12 +30,16 @@
 #include <gst/validate/gst-validate-override-factory.h>
 
 #include "gst-validate-override-severity-changer.h"
+#include "gst-validate-override-factory-checker.h"
 
 static gboolean
 plugin_init (GstPlugin * plugin)
 {
   if (!gst_validate_override_factory_register (plugin, "change-severity",
           GST_RANK_NONE, gst_validate_override_severity_changer_get_type ()))
+    return FALSE;
+  if (!gst_validate_override_factory_register (plugin, "check-factory",
+          GST_RANK_NONE, gst_validate_override_factory_checker_get_type ()))
     return FALSE;
   return TRUE;
 }
