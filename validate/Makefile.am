@@ -9,6 +9,7 @@ SUBDIRS = 	\
 	pkgconfig 	\
 	docs    \
 	tests    \
+	tracers \
 	po
 
 DIST_SUBDIRS = $(SUBDIRS)
