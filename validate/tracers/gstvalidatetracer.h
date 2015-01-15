@@ -32,12 +32,19 @@ struct _GstValidateTracer {
   /*< private >*/
 };
 
+typedef gpointer (*GstValidateTracerCreateMonitorData) (GstTracer *, GstObject *);
+
 struct _GstValidateTracerClass {
   GstTracerClass parent_class;
 
+  GstValidateTracerCreateMonitorData create_monitor_data;
   /* signals */
 };
 
 G_GNUC_INTERNAL GType gst_validate_tracer_get_type (void);
+
+gpointer gst_validate_tracer_get_monitor_data (GstTracer *self, GstObject *object);
+
+G_END_DECLS
 
 #endif /* __GST_VALIDATE_TRACER_H__ */

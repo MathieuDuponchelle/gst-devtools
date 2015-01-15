@@ -1,7 +1,9 @@
 lib_LTLIBRARIES = libgstvalidatetracers.la
 
 libgstvalidatetracers_la_SOURCES = \
-	gstvalidatetracer.c
+				   gstvalidatetracers.c \
+				   gstvalidatetracer.c \
+				   gstvalidateframecomparator.c
 
 libgstvalidatetracers_la_CFLAGS = $(GST_ALL_CFLAGS) \
   -DGST_USE_UNSTABLE_API
@@ -11,4 +13,5 @@ libgstvalidatetracers_la_LIBADD = \
 	$(GST_BASE_LIBS) $(GST_ALL_LIBS)
 
 noinst_HEADERS = \
-	gstvalidatetracer.h
+	gstvalidatetracer.h \
+	gstvalidateframecomparator.h
