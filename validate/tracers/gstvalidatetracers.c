@@ -5,12 +5,15 @@
 #include <gst/gst.h>
 #include <gst/gsttracer.h>
 #include "gstvalidateframecomparator.h"
+#include "gstvalidator.h"
 
 static gboolean
 plugin_init (GstPlugin * plugin)
 {
   if (!gst_tracer_register (plugin, "framecomparator",
           gst_validate_frame_comparator_get_type ()))
+    return FALSE;
+  if (!gst_tracer_register (plugin, "validator", gst_validator_get_type ()))
     return FALSE;
   return TRUE;
 }

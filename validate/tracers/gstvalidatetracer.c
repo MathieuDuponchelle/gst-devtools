@@ -16,34 +16,10 @@ GST_DEBUG_CATEGORY_STATIC (gst_validate_tracer_debug);
 G_DEFINE_TYPE_WITH_CODE (GstValidateTracer, gst_validate_tracer,
     GST_TYPE_TRACER, _do_init);
 
-typedef struct
-{
-  gint lol;
-} DummyData;
-
-static gpointer
-_get_dummy_data (GstTracer * self, GstObject * object)
-{
-  return (g_malloc0 (sizeof (DummyData)));
-}
-
 static void
 gst_validate_tracer_class_init (GstValidateTracerClass * klass)
 {
-  klass->create_monitor_data = _get_dummy_data;
-}
-
-static GQuark
-_get_quark_for_instance (GstTracer * self)
-{
-  gchar *quark_string;
-  GQuark quark;
-
-  quark_string =
-      g_strdup_printf ("%s-%p", g_type_name (G_OBJECT_TYPE (self)), self);
-  quark = g_quark_from_string (quark_string);
-  g_free (quark_string);
-  return quark;
+  klass->monitor_pad = NULL;
 }
 
 static void
@@ -53,16 +29,17 @@ do_add_pad_pre (GstTracer * self, G_GNUC_UNUSED guint64 ts,
   GstValidateTracerClass *tracer_class =
       GST_VALIDATE_TRACER_CLASS (G_OBJECT_GET_CLASS (self));
 
-  if (tracer_class->create_monitor_data) {
-    gpointer qdata = tracer_class->create_monitor_data (self, GST_OBJECT (pad));
-    g_object_set_qdata (G_OBJECT (pad), _get_quark_for_instance (self), qdata);
+  if (tracer_class->monitor_pad) {
+    PadMonitor *pad_monitor = tracer_class->monitor_pad (self, pad);
+    monitor_register (MONITOR (pad_monitor), self, G_OBJECT (pad));
   }
 }
 
-gpointer
-gst_validate_tracer_get_monitor_data (GstTracer * self, GstObject * object)
+gboolean
+gst_validate_tracer_parse_structure (GstValidateTracer * self,
+    GstStructure * structure)
 {
-  return g_object_get_qdata (G_OBJECT (object), _get_quark_for_instance (self));
+  return TRUE;
 }
 
 static void

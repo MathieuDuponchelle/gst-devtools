@@ -5,6 +5,7 @@
 #include <gst/gst.h>
 #include <gst/gsttracer.h>
 #include "gstvalidateframecomparator.h"
+#include "padmonitor.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_validate_frame_comparator_debug);
 #define GST_CAT_DEFAULT gst_validate_frame_comparator_debug
@@ -21,9 +22,7 @@ _constructed (GObject * object)
 {
   gchar *params;
 
-  GST_ERROR ("constructed");
   g_object_get (object, "params", &params, NULL);
-  GST_ERROR_OBJECT (object, "constructing, params : %s", params);
   ((GObjectClass *) parent_class)->constructed (object);
 }
 
@@ -34,9 +33,13 @@ gst_validate_frame_comparator_class_init (GstFrameComparatorClass * klass)
 }
 
 static void
-do_push_buffer_pre (GstTracer * self, guint64 ts, GstPad * pad,
+do_push_buffer_pre (GstTracer * self, G_GNUC_UNUSED guint64 ts, GstPad * pad,
     GstBuffer * buffer)
 {
+  PadMonitor *padmonitor =
+      PAD_MONITOR (get_monitor_for_type_name (G_OBJECT (pad), "GstValidator"));
+
+  GST_ERROR ("pad monitor is %p", padmonitor);
   GST_ERROR_OBJECT (self, "about to push a buffer %p on %p", buffer, pad);
 }
 
@@ -44,7 +47,6 @@ static void
 gst_validate_frame_comparator_init (GstFrameComparator * self)
 {
   GstTracer *tracer = GST_TRACER (self);
-
 
   gst_tracing_register_hook (tracer, "pad-push-pre",
       G_CALLBACK (do_push_buffer_pre));
