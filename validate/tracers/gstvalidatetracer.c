@@ -23,15 +23,19 @@ gst_validate_tracer_class_init (GstValidateTracerClass * klass)
 }
 
 static void
-do_add_pad_pre (GstTracer * self, G_GNUC_UNUSED guint64 ts,
-    G_GNUC_UNUSED GstElement * elem, GstPad * pad)
+do_add_pad_post (GstTracer * tracer, G_GNUC_UNUSED guint64 ts,
+    G_GNUC_UNUSED GstElement * elem, GstPad * pad, gboolean result)
 {
+  GstValidateTracer *self = GST_VALIDATE_TRACER (tracer);
   GstValidateTracerClass *tracer_class =
       GST_VALIDATE_TRACER_CLASS (G_OBJECT_GET_CLASS (self));
 
+  if (!result)
+    return;
+
   if (tracer_class->monitor_pad) {
-    PadMonitor *pad_monitor = tracer_class->monitor_pad (self, pad);
-    monitor_register (MONITOR (pad_monitor), self, G_OBJECT (pad));
+    PadMonitor *pad_monitor = tracer_class->monitor_pad (tracer, pad);
+    monitor_register (MONITOR (pad_monitor), tracer, G_OBJECT (pad));
   }
 }
 
@@ -42,6 +46,13 @@ gst_validate_tracer_parse_structure (GstValidateTracer * self,
   return TRUE;
 }
 
+void
+gst_validate_tracer_set_runner (GstValidateTracer * self,
+    GstValidateRunner * runner)
+{
+  self->runner = runner;
+}
+
 static void
 gst_validate_tracer_init (GstValidateTracer * self)
 {
@@ -49,6 +60,6 @@ gst_validate_tracer_init (GstValidateTracer * self)
 
   GST_DEBUG_OBJECT (self, "initializing base validate tracer");
 
-  gst_tracing_register_hook (tracer, "element-add-pad-pre",
-      G_CALLBACK (do_add_pad_pre));
+  gst_tracing_register_hook (tracer, "element-add-pad-post",
+      G_CALLBACK (do_add_pad_post));
 }

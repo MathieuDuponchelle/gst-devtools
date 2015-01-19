@@ -14,9 +14,17 @@ enum
   PROP_LAST
 };
 
+static GstValidateInterceptionReturn
+monitor_intercept_report (GstValidateReporter * reporter,
+    GstValidateReport * report)
+{
+  return GST_VALIDATE_REPORTER_REPORT;
+}
+
 static void
 _reporter_iface_init (GstValidateReporterInterface * iface)
 {
+  iface->intercept_report = monitor_intercept_report;
 }
 
 #define _do_init \
@@ -50,6 +58,10 @@ monitor_set_property (GObject * object, guint prop_id,
         gst_validate_reporter_set_name (GST_VALIDATE_REPORTER (monitor),
             g_strdup (GST_OBJECT_NAME (monitor->target)));
       break;
+    case PROP_RUNNER:
+      gst_validate_reporter_set_runner (GST_VALIDATE_REPORTER (monitor),
+          g_value_get_object (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -65,6 +77,10 @@ monitor_get_property (GObject * object, guint prop_id,
   switch (prop_id) {
     case PROP_OBJECT:
       g_value_set_object (value, GST_VALIDATE_MONITOR_GET_OBJECT (monitor));
+      break;
+    case PROP_RUNNER:
+      g_value_set_object (value,
+          gst_validate_reporter_get_runner (GST_VALIDATE_REPORTER (monitor)));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -87,6 +103,10 @@ monitor_class_init (MonitorClass * klass)
           "The Validate runner to " "report errors to",
           GST_TYPE_VALIDATE_RUNNER,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_OBJECT,
+      g_param_spec_object ("object", "Object", "The object to be monitored",
+          GST_TYPE_OBJECT, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }
 
 void
@@ -96,6 +116,7 @@ monitor_register (Monitor * monitor, GstTracer * tracer, GObject * object)
 
   quark = g_quark_from_string (g_type_name (G_OBJECT_TYPE (tracer)));
   g_object_set_qdata (object, quark, monitor);
+  monitor->tracer = tracer;
 }
 
 /* FIXME move to some utils file */

@@ -21,6 +21,7 @@ G_BEGIN_DECLS
 struct _Monitor {
   GObject 	 object;
   GObject    *target;
+  GstTracer *tracer;
 };
 
 struct _MonitorClass {

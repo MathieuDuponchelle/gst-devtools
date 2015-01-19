@@ -87,15 +87,4 @@ gst_validate_init (void)
 
   /* init the report system (can be called multiple times) */
   gst_validate_report_init ();
-
-  /* Init the scenario system */
-  init_scenarios ();
-
-  gst_registry_fork_set_enabled (FALSE);
-  gst_validate_registry_get ();
-  gst_validate_scan_plugin_path (_gst_validate_registry_default);
-  gst_registry_fork_set_enabled (TRUE);
-
-  /* Ensure we load overrides before any use of a monitor */
-  gst_validate_override_parser_preload ();
 }

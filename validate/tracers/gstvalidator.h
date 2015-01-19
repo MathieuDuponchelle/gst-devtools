@@ -3,6 +3,7 @@
 
 #include <gst/gst.h>
 #include <gst/gsttracer.h>
+#include <gst/validate/gst-validate-runner.h>
 
 G_BEGIN_DECLS
 
@@ -31,6 +32,7 @@ struct _GstValidator {
 
   /*< private >*/
   GHashTable *tracers;
+  GstValidateRunner *runner;
 };
 
 struct _GstValidatorClass {

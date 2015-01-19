@@ -19,6 +19,8 @@ G_BEGIN_DECLS
 #define PAD_MONITOR_CAST(obj)            ((PadMonitor*)(obj))
 #define PAD_MONITOR_CLASS_CAST(klass)    ((PadMonitorClass*)(klass))
 
+#define PAD_MONITOR_GET_PAD(monitor) (GST_PAD (MONITOR (monitor)->target))
+
 struct _PadMonitor {
   Monitor 	 parent;
 };

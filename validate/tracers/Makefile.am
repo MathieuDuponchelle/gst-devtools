@@ -7,7 +7,8 @@ libgstvalidatetracers_la_SOURCES = \
 				   gstvalidator.c \
 				   monitor.c \
 				   padmonitor.c \
-				   elementmonitor.c
+				   elementmonitor.c \
+				   gstvalidateseqnumchecker.c
 
 libgstvalidatetracers_la_CFLAGS = $(GST_ALL_CFLAGS) \
   -DGST_USE_UNSTABLE_API
@@ -22,4 +23,5 @@ noinst_HEADERS = \
 	gstvalidator.h \
 	monitor.h \
 	padmonitor.h \
-	elementmonitor.h
+	elementmonitor.h \
+	gstvalidateseqnumchecker.h

@@ -3,6 +3,7 @@
 
 #include <gst/gst.h>
 #include <gst/gsttracer.h>
+#include <gst/validate/gst-validate-runner.h>
 #include "padmonitor.h"
 
 G_BEGIN_DECLS
@@ -31,6 +32,7 @@ struct _GstValidateTracer {
   GstTracer 	 parent;
 
   /*< private >*/
+  GstValidateRunner *runner;
 };
 
 typedef PadMonitor * (*GstValidateTracerMonitorPadFunc) (GstTracer *, GstPad *);
@@ -45,6 +47,7 @@ struct _GstValidateTracerClass {
 G_GNUC_INTERNAL GType gst_validate_tracer_get_type (void);
 
 gboolean gst_validate_tracer_parse_structure (GstValidateTracer *self, GstStructure * structure);
+void     gst_validate_tracer_set_runner (GstValidateTracer *self, GstValidateRunner *runner);
 
 G_END_DECLS
 
