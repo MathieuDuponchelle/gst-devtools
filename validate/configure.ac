@@ -62,6 +62,10 @@ AM_GNU_GETTEXT_VERSION([0.17])
 AM_GNU_GETTEXT([external])
 AG_GST_GETTEXT([gst-validate-$GST_API_VERSION])
 
+dnl Tiny library overriding calls such as socket recv / send
+FAULTINJECTION_LIBS="-L$(top_srcdir)/fault_injection/.libs/ -lfaultinjection-$GST_API_VERSION"
+AC_SUBST([FAULTINJECTION_LIBS])
+
 dnl Check wether to build LDPRELOAD related code or not
 AC_CANONICAL_HOST
 case $host_os in
@@ -275,6 +279,7 @@ Makefile
 common/Makefile
 common/m4/Makefile
 data/Makefile
+fault_injection/Makefile
 gst/Makefile
 gst/validate/Makefile
 gst/preload/Makefile
