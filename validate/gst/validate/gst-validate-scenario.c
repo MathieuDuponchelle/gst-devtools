@@ -45,6 +45,9 @@
 #include "gst-validate-utils.h"
 #include <gst/validate/gst-validate-override.h>
 #include <gst/validate/gst-validate-override-registry.h>
+#include <socket_interposer.h>
+
+#include <netinet/in.h>
 
 #define GST_VALIDATE_SCENARIO_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GST_TYPE_VALIDATE_SCENARIO, GstValidateScenarioPrivate))
@@ -69,6 +72,22 @@ enum
   PROP_RUNNER,
   PROP_HANDLES_STATE,
   PROP_LAST
+};
+
+struct errno_entry
+{
+  const gchar *str;
+  int _errno;
+};
+
+static struct errno_entry errno_map[] = {
+  {"ECONNABORTED", ECONNABORTED},
+  {"ECONNRESET", ECONNRESET},
+  {"ENETRESET", ENETRESET},
+  {"ECONNREFUSED", ECONNREFUSED},
+  {"EHOSTUNREACH", EHOSTUNREACH},
+  {"EHOSTDOWN", EHOSTDOWN},
+  {NULL, 0},
 };
 
 static GList *action_types = NULL;
@@ -102,6 +121,8 @@ struct _GstValidateScenarioPrivate
   guint wait_id;
 
   gboolean buffering;
+
+  gboolean fault_injector_loaded;
 
   gboolean changing_state;
   GstState target_state;
@@ -1206,6 +1227,87 @@ _execute_emit_signal (GstValidateScenario * scenario,
   return TRUE;
 }
 
+static int
+socket_callback_ (GstValidateAction * action, const void *buff, size_t len)
+{
+  gint times;
+  gint real_errno;
+
+  gst_structure_get_int (action->structure, "times", &times);
+  gst_structure_get_int (action->structure, "real_errno", &real_errno);
+
+  times -= 1;
+  gst_structure_set (action->structure, "times", G_TYPE_INT, times, NULL);
+  if (times <= 0) {
+    gst_validate_action_set_done (action);
+    return 0;
+  }
+
+  return real_errno;
+}
+
+static gint
+errno_string_to_int (const gchar * errno_str)
+{
+  gint i;
+
+  for (i = 0; errno_map[i]._errno; i += 1) {
+    if (!g_ascii_strcasecmp (errno_map[i].str, errno_str))
+      return errno_map[i]._errno;
+  }
+
+  return 0;
+}
+
+static gboolean
+_execute_corrupt_socket_recv (GstValidateScenario * scenario,
+    GstValidateAction * action)
+{
+  struct sockaddr_in addr =
+      { AF_INET, htons (42), {htonl (INADDR_LOOPBACK)}, {0} };
+  gint server_port, times;
+  const gchar *errno_str;
+  gint real_errno;
+
+  if (!scenario->priv->fault_injector_loaded) {
+    GST_ERROR
+        ("The fault injector wasn't preloaded, can't execute socket recv corruption\n"
+        "You should set LD_PRELOAD to the path of libfaultinjection.so");
+    return FALSE;
+  }
+
+  if (!gst_structure_get_int (action->structure, "port", &server_port)) {
+    GST_ERROR ("could not get port to corrupt recv on.");
+    return FALSE;
+  }
+
+  if (!gst_structure_get_int (action->structure, "times", &times)) {
+    gst_structure_set (action->structure, "times", G_TYPE_INT, 1, NULL);
+  }
+
+  errno_str = gst_structure_get_string (action->structure, "errno");
+  if (!errno_str) {
+    GST_ERROR ("Could not get errno string");
+    return FALSE;
+  }
+
+  real_errno = errno_string_to_int (errno_str);
+
+  if (real_errno == 0) {
+    GST_ERROR ("unrecognized errno");
+    return FALSE;
+  }
+
+  gst_structure_set (action->structure, "real_errno", G_TYPE_INT, real_errno,
+      NULL);
+
+  addr.sin_port = htons (server_port);
+
+  socket_interposer_set_callback (&addr,
+      (socket_interposer_callback) socket_callback_, action);
+  return GST_VALIDATE_EXECUTE_ACTION_ASYNC;
+}
+
 static void
 gst_validate_scenario_update_segment_from_seek (GstValidateScenario * scenario,
     GstEvent * seek)
@@ -1660,6 +1762,12 @@ gst_validate_scenario_init (GstValidateScenario * scenario)
 {
   GstValidateScenarioPrivate *priv = scenario->priv =
       GST_VALIDATE_SCENARIO_GET_PRIVATE (scenario);
+  const gchar *ld_preload = g_getenv ("LD_PRELOAD");
+
+  scenario->priv->fault_injector_loaded = FALSE;
+
+  if (ld_preload && strstr (ld_preload, "libfaultinjection-1.0.so"))
+    scenario->priv->fault_injector_loaded = TRUE;
 
   priv->seek_pos_tol = DEFAULT_SEEK_TOLERANCE;
   priv->segment_start = 0;
@@ -2411,6 +2519,34 @@ init_scenarios (void)
       }),
       "Emits a signal to an element in the pipeline",
       GST_VALIDATE_ACTION_TYPE_NONE);
-  /*  *INDENT-ON* */
 
+  REGISTER_ACTION_TYPE ("corrupt-socket-recv", _execute_corrupt_socket_recv,
+      ((GstValidateActionParameter [])
+      {
+        {
+          .name = "port",
+          .description = "The port the socket to be corrupted listens on",
+          .mandatory = TRUE,
+          .types = "int",
+          .possible_variables = NULL,
+        },
+        {
+          .name = "errno",
+          .description = "errno to set when failing",
+          .mandatory = TRUE,
+          .types = "string",
+        },
+        {
+          .name = "times",
+          .description = "Number of times to corrupt recv, default is one",
+          .mandatory = FALSE,
+          .types = "int",
+          .possible_variables = NULL,
+          .def = "1",
+        },
+        {NULL}
+      }),
+      "corrupt the next socket receive",
+      GST_VALIDATE_ACTION_TYPE_ASYNC);
+  /*  *INDENT-ON* */
 }
