@@ -62,10 +62,6 @@ AM_GNU_GETTEXT_VERSION([0.17])
 AM_GNU_GETTEXT([external])
 AG_GST_GETTEXT([gst-validate-$GST_API_VERSION])
 
-dnl Tiny library overriding calls such as socket recv / send
-FAULTINJECTION_LIBS="-L$(top_srcdir)/fault_injection/.libs/ -lfaultinjection-$GST_API_VERSION"
-AC_SUBST([FAULTINJECTION_LIBS])
-
 dnl Check wether to build LDPRELOAD related code or not
 AC_CANONICAL_HOST
 case $host_os in
@@ -238,6 +234,10 @@ dnl add GST_OPTION_CFLAGS, but overridable
 GST_CFLAGS="$GST_CFLAGS \$(GST_OPTION_CFLAGS)"
 AC_SUBST(GST_CFLAGS)
 AC_SUBST(GST_LIBS)
+
+dnl Tiny library overriding calls such as socket recv / send
+FAULTINJECTION_LIBS="-L\$(top_srcdir)/fault_injection/ -lfaultinjection-$GST_API_VERSION"
+AC_SUBST([FAULTINJECTION_LIBS])
 
 dnl GST_ALL_*
 dnl vars common to for all internal objects (core libs, elements, applications)
